@@ -1,0 +1,93 @@
+// ------------------------------------------------------------
+// Ni49Fe18Ga27Co6, 295 K (austenite)
+// MFM + magnetization maps
+// ------------------------------------------------------------
+
+// ---------- mesh ----------
+Nx := 512
+Ny := 512
+Nz := 4
+
+Lx := 10e-6
+Ly := 10e-6
+Lz := 200e-9
+
+// Геометрия: прямоугольная плёнка Lx×Ly с толщиной Lz (SI: метры).
+SetGridSize(Nx, Ny, Nz)
+SetCellSize(Lx/Nx, Ly/Ny, Lz/Nz)
+SetGeom(rect(Lx, Ly))
+// Сглаживание границы уменьшает численные артефакты на краю (демаг/энергия).
+EdgeSmooth = 8
+
+// ---------- material ----------
+// Msat (A/m): масштаб магнитостатических полей; Aex (J/m): обмен; Ku1 (J/m^3): одноосная анизотропия.
+Msat  = 341e3
+Aex   = 1.2e-11
+Ku1   = 989
+//Ku1   = 2500 // альтернативный вариант Ku1 для сравнения чувствительности доменной структуры к анизотропии
+// alpha: коэффициент затухания в LLG; здесь выбран большим для быстрой релаксации.
+alpha = 0.5
+
+// ---------- easy axis ----------
+// Variant 1:
+//anisU = vector(0, 0, 1)
+
+// Variant 2:
+// anisU: направление лёгкой оси (единичный вектор) для одноосной анизотропии Ku1.
+anisU = vector(1, 0, 0)
+
+// ---------- initial state ----------
+// Случайная инициализация помогает получить “самоорганизованную” доменную структуру при релаксации.
+m = RandomMag()
+// defRegion(1, xrange(-inf, 0))
+// defRegion(2, xrange(0, inf))
+// m.setRegion(1, uniform(0, 0, 1))
+// m.setRegion(2, uniform(0, 0,-1))
+
+// ---------- table ----------
+// Диагностика: энергии (вклады) и средняя намагниченность в процессе релаксации/минимизации.
+TableAdd(E_total)
+TableAdd(E_exch)
+TableAdd(E_demag)
+TableAdd(E_anis)
+TableAdd(m)
+
+saveas(m, "m_austenite_initial")
+saveas(m.Comp(0), "mx_austenite_initial")
+saveas(m.Comp(1), "my_austenite_initial")
+saveas(m.Comp(2), "mz_austenite_initial")
+tablesave()
+
+// ---------- relaxation ----------
+// Порог сходимости минимизатора: меньше → строже критерий (обычно дольше, но “глубже” минимум).
+MinimizerStop = 1e-6
+Relax()
+Minimize()
+
+// ---------- magnetization maps ----------
+saveas(m, "m_austenite_final")
+saveas(m.Comp(0), "mx_austenite_final")
+saveas(m.Comp(1), "my_austenite_final")
+saveas(m.Comp(2), "mz_austenite_final")
+
+// ---------- demag field ----------
+// B_demag (T): демагнитизирующее поле, напрямую связанное с ожидаемым MFM-контрастом.
+saveas(B_demag, "Bdemag_austenite")
+saveas(B_demag.Comp(0), "Bdemagx_austenite")
+saveas(B_demag.Comp(1), "Bdemagy_austenite")
+saveas(B_demag.Comp(2), "Bdemagz_austenite")
+
+// ---------- MFM ----------
+// MFMLift (m): высота “подъёма” виртуального зонда; больше lift → сильнее сглаживание мелких деталей.
+// MFMDipole (m): характерный размер/параметр зонда, задающий пространственный “фильтр” сигнала.
+MFMLift   = 30e-9
+MFMDipole = 30e-9
+saveas(MFM, "MFM_austenite_lift30nm")
+
+MFMLift = 50e-9
+saveas(MFM, "MFM_austenite_lift50nm")
+
+MFMLift = 80e-9
+saveas(MFM, "MFM_austenite_lift80nm")
+
+tablesave()

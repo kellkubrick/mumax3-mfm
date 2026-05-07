@@ -1,0 +1,106 @@
+// ------------------------------------------------------------
+// Ni49Fe18Ga27Co6, 78 K (martensite)
+// MFM + magnetization maps
+// ------------------------------------------------------------
+
+// ---------- mesh ----------
+Nx := 512
+Ny := 512
+Nz := 4
+
+Lx := 10e-6
+Ly := 10e-6
+Lz := 200e-9
+
+// Геометрия: прямоугольная плёнка Lx×Ly с толщиной Lz (SI: метры).
+SetGridSize(Nx, Ny, Nz)
+SetCellSize(Lx/Nx, Ly/Ny, Lz/Nz)
+SetGeom(rect(Lx, Ly))
+// Сглаживание границы уменьшает численные артефакты на краю (демаг/энергия).
+EdgeSmooth = 8
+
+// ---------- зёрна + случайные лёгкие оси (унимодальная ось Ku1 вдоль anisU в каждом зерне) ----------
+// grainSize (m): характерный масштаб зёрен; задаёт масштаб пространственной неоднородности anisU.
+grainSize   := 6500e-9
+// maxRegion: лимит числа зёрен/регионов (в MuMax3 регионы используются для задания параметров по областям).
+maxRegion   := 255
+// grainSeed: фиксирует реализацию поликристалла (воспроизводимость разбиения на зёрна).
+grainSeed   := 1234567
+ext_makegrains(grainSize, maxRegion, grainSeed)
+
+// Msat (A/m): масштаб магнитостатических полей; Aex (J/m): обмен; Ku1 (J/m^3): одноосная анизотропия.
+Msat  = 445e3
+Aex   = 1.2e-11
+Ku1   = 3716
+// alpha: коэффициент затухания в LLG; здесь выбран большим для быстрой релаксации.
+alpha = 0.5
+
+
+
+
+// Случайная единичная ось на зерно: u in [-1,1], phi in [0,2pi) -> равномерно по сфере
+for i:=0; i<maxRegion; i++ {
+	u   := 2*rand() - 1
+	phi := 2*pi*rand()
+	s   := sqrt(1 - u*u)
+	// anisU: направление лёгкой оси одноосной анизотропии; здесь оно различно для каждого зерна.
+	anisU.SetRegion(i, vector(s*cos(phi), s*sin(phi), u))
+}
+
+// Было: одна ось на весь образец
+// anisU = vector(0, 0, 1)
+
+// ---------- initial state ----------
+// Случайная инициализация помогает получить “самоорганизованную” доменную структуру при релаксации.
+m = RandomMag()
+
+// ---------- table ----------
+// Диагностика: энергии (вклады) и средняя намагниченность в процессе релаксации/минимизации.
+TableAdd(E_total)
+TableAdd(E_exch)
+TableAdd(E_demag)
+TableAdd(E_anis)
+TableAdd(m)
+
+saveas(m, "m_martensite_initial")
+saveas(m.Comp(0), "mx_martensite_initial")
+saveas(m.Comp(1), "my_martensite_initial")
+saveas(m.Comp(2), "mz_martensite_initial")
+tablesave()
+
+// ---------- relaxation ----------
+// Порог сходимости минимизатора: меньше → строже критерий (обычно дольше, но “глубже” минимум).
+MinimizerStop = 5.2e-6
+Relax()
+Minimize()
+
+// ---------- magnetization maps ----------
+saveas(m, "m_martensite_final")
+saveas(m.Comp(0), "mx_martensite_final")
+saveas(m.Comp(1), "my_martensite_final")
+saveas(m.Comp(2), "mz_martensite_final")
+
+// ---------- demag field ----------
+// B_demag (T): демагнитизирующее поле, напрямую связанное с ожидаемым MFM-контрастом.
+saveas(B_demag, "Bdemag_martensite")
+saveas(B_demag.Comp(0), "Bdemagx_martensite")
+saveas(B_demag.Comp(1), "Bdemagy_martensite")
+saveas(B_demag.Comp(2), "Bdemagz_martensite")
+
+// ---------- MFM ----------
+// MFMLift (m): высота “подъёма” виртуального зонда; больше lift → сильнее сглаживание мелких деталей.
+// MFMDipole (m): характерный размер/параметр зонда, задающий пространственный “фильтр” сигнала.
+MFMLift   = 30e-9
+MFMDipole = 30e-9
+saveas(MFM, "MFM_martensite_lift30nm")
+
+MFMLift = 50e-9
+saveas(MFM, "MFM_martensite_lift50nm")
+
+MFMLift = 80e-9
+saveas(MFM, "MFM_martensite_lift80nm")
+
+tablesave()
+
+
+// Посчитать восприимчивость для материала (при внешнем поле) (черную полосу)

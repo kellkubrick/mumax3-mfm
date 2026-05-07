@@ -1,0 +1,6 @@
+# MuMax3 вывод по умолчанию: <имя_скрипта>.out/
+*.out/
+
+# Python
+__pycache__/
+*.py[cod]
