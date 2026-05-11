@@ -1,0 +1,64 @@
+// ---------- martensite_twinlike_minimal.mx3 ----------
+SetGridSize(512, 512, 1)
+SetCellSize(20e-9, 20e-9, 80e-9)
+SetGeom(Rect(10e-6, 10e-6))
+EdgeSmooth = 8
+
+// Replace by your phase-specific values
+Msat  = 445e3
+Aex   = 1.2e-11
+alpha = 0.5
+
+SnapshotFormat = "png"
+OutputFormat   = OVF2_BINARY
+
+ang1 :=  28*pi/180
+ang2 := -22*pi/180
+
+// Main twin-like family
+DefRegion(1, Rect(16e-6, 0.35e-6).RotZ(ang1).Transl(-2.6e-6, -2.0e-6, 0))
+DefRegion(2, Rect(16e-6, 0.35e-6).RotZ(ang1).Transl(-1.2e-6, -0.6e-6, 0))
+DefRegion(3, Rect(16e-6, 0.35e-6).RotZ(ang1).Transl( 0.2e-6,  0.8e-6, 0))
+DefRegion(4, Rect(16e-6, 0.35e-6).RotZ(ang1).Transl( 1.6e-6,  2.2e-6, 0))
+
+// Secondary disturbed bands / patches
+DefRegion(5, Rect(14e-6, 0.22e-6).RotZ(ang2).Transl( 1.8e-6, -1.5e-6, 0))
+DefRegion(6, Rect( 0.6e-6, 0.25e-6).RotZ(45*pi/180).Transl(-0.8e-6,  1.6e-6, 0))
+
+u1 := vector( 1.00,  0.00, 0.10)
+u2 := vector( 0.82,  0.55, 0.10)
+u3 := vector(-0.55,  0.82, 0.10)
+u4 := vector( 0.20, -0.98, 0.15)
+
+// Effective anisotropy: background + selected variants
+Ku1   = 3716
+anisU = u1
+
+anisU.SetRegion(1, u1)
+anisU.SetRegion(2, u2)
+anisU.SetRegion(3, u1)
+anisU.SetRegion(4, u2)
+anisU.SetRegion(5, u3)
+anisU.SetRegion(6, u4)
+
+Ku1.SetRegion(5, 6.0e3)
+Ku1.SetRegion(6, 7.0e3)
+
+// Random start is appropriate for metastable martensitic states
+m = RandomMagSeed(12345)
+Run(0.5e-9)
+MinimizerStop = 1e-5
+Minimize()
+
+saveas(m.Comp(2),        "mz_martensite")
+saveas(B_demag.Comp(2),  "Bdemagz_martensite")
+
+SnapshotAs(m,               "m_martensite")
+SnapshotAs(m.Comp(2),       "mz_martensite")
+SnapshotAs(B_demag.Comp(2), "Bdemagz_martensite")
+
+MFMDipole = 30e-9
+MFMLift   = 50e-9
+SnapshotAs(MFM, "MFM_martensite_lift50nm")
+
+Flush()

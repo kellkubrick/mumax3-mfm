@@ -6,22 +6,26 @@
 // ---------- mesh ----------
 Nx := 512
 Ny := 512
-Nz := 4
+Nz := 8
 
 Lx := 10e-6
 Ly := 10e-6
-Lz := 200e-9
+Lz := 1e-6
 
-// Геометрия: прямоугольная плёнка Lx×Ly с толщиной Lz (SI: метры).
+// Near-surface фрагмент Lx×Ly (здесь 10×10 µm²): площадь, сопоставимая с полем сканирования MFM,
+// а не весь макроскопический образец; толщина Lz задаётся сеткой Nz (SI: метры).
 SetGridSize(Nx, Ny, Nz)
 SetCellSize(Lx/Nx, Ly/Ny, Lz/Nz)
 SetGeom(rect(Lx, Ly))
+// SetPBC(px,py,pz): число периодических образов для демаг-свёртки по осям (0 = без PBC по этой оси).
+// (4,4,0) — квази-бесконечный образец в плоскости xy, свободные поверхности по z (тонкая плёнка).
+//SetPBC(4, 4, 0)
 // Сглаживание границы уменьшает численные артефакты на краю (демаг/энергия).
 EdgeSmooth = 8
 
 // ---------- зёрна + случайные лёгкие оси (унимодальная ось Ku1 вдоль anisU в каждом зерне) ----------
 // grainSize (m): характерный масштаб зёрен; задаёт масштаб пространственной неоднородности anisU.
-grainSize   := 6500e-9
+grainSize   := 650e-9
 // maxRegion: лимит числа зёрен/регионов (в MuMax3 регионы используются для задания параметров по областям).
 maxRegion   := 255
 // grainSeed: фиксирует реализацию поликристалла (воспроизводимость разбиения на зёрна).
@@ -47,12 +51,13 @@ for i:=0; i<maxRegion; i++ {
 	anisU.SetRegion(i, vector(s*cos(phi), s*sin(phi), u))
 }
 
-// Было: одна ось на весь образец
-// anisU = vector(0, 0, 1)
 
 // ---------- initial state ----------
 // Случайная инициализация помогает получить “самоорганизованную” доменную структуру при релаксации.
-m = RandomMag()
+m =  RandomMagSeed(1234567)
+
+// ---------- GUI-like snapshots ----------
+SnapshotFormat = "png"
 
 // ---------- table ----------
 // Диагностика: энергии (вклады) и средняя намагниченность в процессе релаксации/минимизации.
@@ -66,11 +71,12 @@ saveas(m, "m_martensite_initial")
 saveas(m.Comp(0), "mx_martensite_initial")
 saveas(m.Comp(1), "my_martensite_initial")
 saveas(m.Comp(2), "mz_martensite_initial")
+SnapshotAs(m, "m_martensite_initial.png")
 tablesave()
 
 // ---------- relaxation ----------
 // Порог сходимости минимизатора: меньше → строже критерий (обычно дольше, но “глубже” минимум).
-MinimizerStop = 5.2e-6
+MinimizerStop = 1e-5
 Relax()
 Minimize()
 
@@ -79,6 +85,7 @@ saveas(m, "m_martensite_final")
 saveas(m.Comp(0), "mx_martensite_final")
 saveas(m.Comp(1), "my_martensite_final")
 saveas(m.Comp(2), "mz_martensite_final")
+SnapshotAs(m, "m_martensite_final.png")
 
 // ---------- demag field ----------
 // B_demag (T): демагнитизирующее поле, напрямую связанное с ожидаемым MFM-контрастом.
@@ -93,14 +100,18 @@ saveas(B_demag.Comp(2), "Bdemagz_martensite")
 MFMLift   = 30e-9
 MFMDipole = 30e-9
 saveas(MFM, "MFM_martensite_lift30nm")
+SnapshotAs(MFM, "MFM_martensite_lift30nm.png")
 
 MFMLift = 50e-9
 saveas(MFM, "MFM_martensite_lift50nm")
+SnapshotAs(MFM, "MFM_martensite_lift50nm.png")
 
 MFMLift = 80e-9
 saveas(MFM, "MFM_martensite_lift80nm")
+SnapshotAs(MFM, "MFM_martensite_lift80nm.png")
 
 tablesave()
+Flush()
 
 
 // Посчитать восприимчивость для материала (при внешнем поле) (черную полосу)

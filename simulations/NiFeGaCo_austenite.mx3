@@ -6,11 +6,11 @@
 // ---------- mesh ----------
 Nx := 512
 Ny := 512
-Nz := 4
+Nz := 8
 
 Lx := 10e-6
 Ly := 10e-6
-Lz := 200e-9
+Lz := 1e-6
 
 // Геометрия: прямоугольная плёнка Lx×Ly с толщиной Lz (SI: метры).
 SetGridSize(Nx, Ny, Nz)
@@ -44,6 +44,9 @@ m = RandomMag()
 // m.setRegion(1, uniform(0, 0, 1))
 // m.setRegion(2, uniform(0, 0,-1))
 
+// ---------- GUI-like snapshots ----------
+SnapshotFormat = "png"
+
 // ---------- table ----------
 // Диагностика: энергии (вклады) и средняя намагниченность в процессе релаксации/минимизации.
 TableAdd(E_total)
@@ -56,6 +59,7 @@ saveas(m, "m_austenite_initial")
 saveas(m.Comp(0), "mx_austenite_initial")
 saveas(m.Comp(1), "my_austenite_initial")
 saveas(m.Comp(2), "mz_austenite_initial")
+SnapshotAs(m, "m_austenite_initial.png")
 tablesave()
 
 // ---------- relaxation ----------
@@ -69,6 +73,7 @@ saveas(m, "m_austenite_final")
 saveas(m.Comp(0), "mx_austenite_final")
 saveas(m.Comp(1), "my_austenite_final")
 saveas(m.Comp(2), "mz_austenite_final")
+SnapshotAs(m, "m_austenite_final.png")
 
 // ---------- demag field ----------
 // B_demag (T): демагнитизирующее поле, напрямую связанное с ожидаемым MFM-контрастом.
@@ -83,11 +88,14 @@ saveas(B_demag.Comp(2), "Bdemagz_austenite")
 MFMLift   = 30e-9
 MFMDipole = 30e-9
 saveas(MFM, "MFM_austenite_lift30nm")
+SnapshotAs(MFM, "MFM_austenite_lift30nm.png")
 
 MFMLift = 50e-9
 saveas(MFM, "MFM_austenite_lift50nm")
+SnapshotAs(MFM, "MFM_austenite_lift50nm.png")
 
 MFMLift = 80e-9
 saveas(MFM, "MFM_austenite_lift80nm")
+SnapshotAs(MFM, "MFM_austenite_lift80nm.png")
 
 tablesave()
